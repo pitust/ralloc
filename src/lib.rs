@@ -19,6 +19,7 @@
 #![warn(missing_docs)]
 
 extern crate ralloc_shim as shim;
+extern crate alloc;
 
 #[macro_use]
 mod log;
@@ -43,7 +44,7 @@ mod sync;
 mod vec;
 
 use core::alloc::GlobalAlloc;
-use core::alloc::{Alloc, AllocErr, CannotReallocInPlace, Layout};
+use alloc::alloc::{AllocError, Layout};
 use core::ptr::NonNull;
 
 pub use allocator::{alloc, free, realloc, realloc_inplace};
@@ -55,63 +56,32 @@ pub use fail::set_thread_oom_handler;
 /// The rallocator
 pub struct Allocator;
 
-unsafe impl<'a> Alloc for &'a Allocator {
-    unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
+unsafe impl<'a> GlobalAlloc for &'a Allocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let ptr = allocator::alloc(layout.size(), layout.align());
         if ptr.is_null() {
-            Err(AllocErr)
+            0 as *mut u8
         } else {
-            Ok(NonNull::new_unchecked(ptr))
+            ptr
         }
     }
 
-    unsafe fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {
-        allocator::free(ptr.as_ptr(), layout.size());
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        allocator::free(ptr, layout.size());
     }
 
     unsafe fn realloc(
-        &mut self,
-        ptr: NonNull<u8>,
+        &self,
+        ptr: *mut u8,
         layout: Layout,
         new_size: usize,
-    ) -> Result<NonNull<u8>, AllocErr> {
-        let ptr = allocator::realloc(ptr.as_ptr(), layout.size(), new_size, layout.align());
+    ) -> *mut u8 {
+        let ptr = allocator::realloc(ptr, layout.size(), new_size, layout.align());
         if ptr.is_null() {
-            Err(AllocErr)
+            0 as *mut u8
         } else {
-            Ok(NonNull::new_unchecked(ptr))
+            ptr
         }
-    }
-
-    unsafe fn grow_in_place(
-        &mut self,
-        ptr: NonNull<u8>,
-        layout: Layout,
-        new_size: usize,
-    ) -> Result<(), CannotReallocInPlace> {
-        if allocator::realloc_inplace(ptr.as_ptr(), layout.size(), new_size).is_ok() {
-            Ok(())
-        } else {
-            Err(CannotReallocInPlace)
-        }
-    }
-
-    unsafe fn shrink_in_place(
-        &mut self,
-        ptr: NonNull<u8>,
-        layout: Layout,
-        new_size: usize,
-    ) -> Result<(), CannotReallocInPlace> {
-        if allocator::realloc_inplace(ptr.as_ptr(), layout.size(), new_size).is_ok() {
-            Ok(())
-        } else {
-            Err(CannotReallocInPlace)
-        }
-    }
-
-    fn usable_size(&self, layout: &Layout) -> (usize, usize) {
-        // Yay! It matches exactly.
-        (layout.size(), layout.size())
     }
 }
 

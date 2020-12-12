@@ -213,79 +213,79 @@ impl Bookkeeper {
     ///
     /// This is NOOP in release mode.
     fn check(&self) {
-        if cfg!(debug_assertions) {
-            // Logging.
-            bk_log!(self, "Checking...");
+        // if cfg!(debug_assertions) {
+        //     // Logging.
+        //     bk_log!(self, "Checking...");
 
-            // The total number of bytes.
-            let mut total_bytes = 0;
-            // Reverse iterator over the blocks.
-            let mut it = self.pool.iter().enumerate().rev();
+        //     // The total number of bytes.
+        //     let mut total_bytes = 0;
+        //     // Reverse iterator over the blocks.
+        //     let mut it = self.pool.iter().enumerate().rev();
 
-            // Check that the capacity is large enough.
-            assert!(
-                self.reserving || self.pool.len() + EXTRA_ELEMENTS <= self.pool.capacity(),
-                "The capacity should be at least {} more than the length of the pool.",
-                EXTRA_ELEMENTS
-            );
+        //     // Check that the capacity is large enough.
+        //     assert!(
+        //         self.reserving || self.pool.len() + EXTRA_ELEMENTS <= self.pool.capacity(),
+        //         "The capacity should be at least {} more than the length of the pool.",
+        //         EXTRA_ELEMENTS
+        //     );
 
-            if let Some((_, x)) = it.next() {
-                // Make sure there are no leading empty blocks.
-                assert!(!x.is_empty(), "The leading block is empty.");
+        //     if let Some((_, x)) = it.next() {
+        //         // Make sure there are no leading empty blocks.
+        //         assert!(!x.is_empty(), "The leading block is empty.");
 
-                total_bytes += x.size();
+        //         total_bytes += x.size();
 
-                let mut next = x;
-                for (n, i) in it {
-                    total_bytes += i.size();
+        //         let mut next = x;
+        //         for (n, i) in it {
+        //             total_bytes += i.size();
 
-                    // Check if sorted.
-                    assert!(
-                        next >= i,
-                        "The block pool is not sorted at index, {} ({:?} < {:?}).",
-                        n,
-                        next,
-                        i
-                    );
-                    // Make sure no blocks are adjacent.
-                    assert!(
-                        !i.left_to(next) || i.is_empty(),
-                        "Adjacent blocks at index, {} ({:?} and \
-                         {:?})",
-                        n,
-                        i,
-                        next
-                    );
-                    // Make sure an empty block has the same address as its right neighbor.
-                    assert!(
-                        !i.is_empty() || i == next,
-                        "Empty block not adjacent to right neighbor \
-                         at index {} ({:?} and {:?})",
-                        n,
-                        i,
-                        next
-                    );
+        //             // Check if sorted.
+        //             assert!(
+        //                 next >= i,
+        //                 "The block pool is not sorted at index, {} ({:?} < {:?}).",
+        //                 n,
+        //                 next,
+        //                 i
+        //             );
+        //             // Make sure no blocks are adjacent.
+        //             assert!(
+        //                 !i.left_to(next) || i.is_empty(),
+        //                 "Adjacent blocks at index, {} ({:?} and \
+        //                  {:?})",
+        //                 n,
+        //                 i,
+        //                 next
+        //             );
+        //             // Make sure an empty block has the same address as its right neighbor.
+        //             assert!(
+        //                 !i.is_empty() || i == next,
+        //                 "Empty block not adjacent to right neighbor \
+        //                  at index {} ({:?} and {:?})",
+        //                 n,
+        //                 i,
+        //                 next
+        //             );
 
-                    // Set the variable tracking the previous block.
-                    next = i;
-                }
+        //             // Set the variable tracking the previous block.
+        //             next = i;
+        //         }
 
-                // Check for trailing empty blocks.
-                assert!(
-                    !self.pool.last().unwrap().is_empty(),
-                    "Trailing empty blocks."
-                );
-            }
+        //         // Check for trailing empty blocks.
+        //         assert!(
+        //             !self.pool.last().unwrap().is_empty(),
+        //             "Trailing empty blocks."
+        //         );
+        //     }
 
-            // Make sure the sum is maintained properly.
-            assert!(
-                total_bytes == self.total_bytes,
-                "The sum is not equal to the 'total_bytes' \
-                 field: {} ≠ {}.",
-                total_bytes,
-                self.total_bytes
-            );
-        }
+        //     // Make sure the sum is maintained properly.
+        //     assert!(
+        //         total_bytes == self.total_bytes,
+        //         "The sum is not equal to the 'total_bytes' \
+        //          field: {} ≠ {}.",
+        //         total_bytes,
+        //         self.total_bytes
+        //     );
+        // }
     }
 }
 
@@ -979,7 +979,7 @@ pub trait Allocator: ops::DerefMut<Target = Bookkeeper> {
                     // We will move a block into reserved memory but outside of the vec's bounds. For
                     // that reason, we push an uninitialized element to extend the length, which will
                     // be assigned in the memcpy.
-                    let res = self.pool.push(mem::uninitialized());
+                    let res = self.pool.push(mem::MaybeUninit::uninit().assume_init());
 
                     // Just some assertions...
                     debug_assert!(res.is_ok(), "Push failed (buffer full).");
