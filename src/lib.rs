@@ -13,7 +13,7 @@
 #![cfg_attr(feature = "clippy", plugin(clippy))]
 #![no_std]
 #![feature(
-    allocator_api, const_fn, core_intrinsics, stmt_expr_attributes, optin_builtin_traits,
+    allocator_api, const_fn, core_intrinsics, stmt_expr_attributes,
     type_ascription, thread_local, linkage
 )]
 #![warn(missing_docs)]
